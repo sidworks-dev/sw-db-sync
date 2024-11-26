@@ -1,6 +1,6 @@
 {
   "name": "sw-db-sync",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "Database synchronizer for Shopware 6",
   "author": {
     "name": "Jelle Siderius"

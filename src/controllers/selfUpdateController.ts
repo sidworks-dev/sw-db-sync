@@ -27,7 +27,7 @@ class SelfUpdateController {
         if (config.currentVersion < config.latestVersion) {
             await consoleCommand(`cd ${config.npmPath}; rm -rf dist`, false);
 
-            await download('jellesiderius/sw-db-sync#master', config.npmPath, async function (err: any) {
+            await download('sidworks-dev/sw-db-sync#master', config.npmPath, async function (err: any) {
                 await consoleCommand(`cd ${config.npmPath}; npm install`, false);
                 success(`Updated sw-db-sync from ${config.currentVersion} to ${config.latestVersion}`);
             });

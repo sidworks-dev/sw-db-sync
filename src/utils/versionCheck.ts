@@ -11,7 +11,7 @@ class VersionCheck {
 
 	// versions
 	getToolVersions = async () => {
-		await fetch('https://raw.githubusercontent.com/jellesiderius/sw-db-sync/master/package.json')
+		await fetch('https://raw.githubusercontent.com/sidworks-dev/sw-db-sync/master/package.json')
 			.then((res: { json: () => any; }) => res.json())
 			.then((json: { version: string; }) => this.config.latestVersion = json.version);
 	}

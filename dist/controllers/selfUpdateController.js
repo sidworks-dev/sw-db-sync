@@ -23,7 +23,7 @@ class SelfUpdateController {
             });
             if (config.currentVersion < config.latestVersion) {
                 yield (0, console_1.consoleCommand)(`cd ${config.npmPath}; rm -rf dist`, false);
-                yield (0, download_git_repo_1.default)('jellesiderius/sw-db-sync#master', config.npmPath, function (err) {
+                yield (0, download_git_repo_1.default)('sidworks-dev/sw-db-sync#master', config.npmPath, function (err) {
                     return tslib_1.__awaiter(this, void 0, void 0, function* () {
                         yield (0, console_1.consoleCommand)(`cd ${config.npmPath}; npm install`, false);
                         (0, console_1.success)(`Updated sw-db-sync from ${config.currentVersion} to ${config.latestVersion}`);
