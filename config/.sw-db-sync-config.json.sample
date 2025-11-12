@@ -1,0 +1,16 @@
+{
+  "sales_channel_domains": {
+    "018C3C4F4FA170F89E6B5F6A5C8D0E99": "my-store.local",
+    "018C3C4F4FA170F89E6B5F6A5C8D0E98": "my-other-store.local"
+  },
+  "system_config": {
+    "null": {
+      "core.basicInformation.email": "info@example.local",
+      "core.mailerSettings.emailAgent": "local"
+    },
+    "018C3C4F4FA170F89E6B5F6A5C8D0E99": {
+      "core.basicInformation.shopName": "My Local Store",
+      "core.basicInformation.email": "store1@example.local"
+    }
+  }
+}

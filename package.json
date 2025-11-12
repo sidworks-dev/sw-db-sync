@@ -73,6 +73,7 @@
     "bin/",
     "dist/",
     "config/**/*.sample",
+    "config/**/*.sample.md",
     "config/static-settings.json",
     "scripts/",
     "LICENSE.md",

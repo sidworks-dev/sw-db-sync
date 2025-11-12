@@ -26,7 +26,10 @@ export interface StaticSettings {
 }
 
 export interface ProjectConfig {
-    [key: string]: any;
+    sales_channel_domains?: Record<string, string>;  // sales_channel_id -> local domain
+    system_config?: Record<string, Record<string, string | number | boolean | null>>;  // sales_channel_id -> config path/value pairs
+    databaseStripDevelopment?: string;
+    databaseStripFull?: string;
 }
 
 export interface DatabaseConfig {
