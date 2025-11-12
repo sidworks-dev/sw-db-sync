@@ -1,59 +1,164 @@
-import program from 'commander'
-import commandLoader from './commands/index'
+import { Command } from 'commander';
+import kleur from 'kleur';
+import process from 'process';
 import fs from 'fs';
-// @ts-ignore
-import {getInstalledPath} from 'get-installed-path'
-import {error} from "./utils/console";
-import VersionCheck from "./utils/versionCheck";
+import { getInstalledPath } from 'get-installed-path';
+import { error } from './utils/Console';
+import { StartController } from './controllers/StartController';
+import { SelfUpdateController } from './controllers/SelfUpdateController';
+import { ServiceContainer } from './core/ServiceContainer';
+import { ConfigInitializer } from './utils/ConfigInitializer';
+import { ConfigPathResolver } from './utils/ConfigPathResolver';
+import { UI } from "./utils/UI";
 
-getInstalledPath('sw-db-sync').then(async (path: any) => {
-    // Lets make sure all required files are in place before running the tool
-    let npmPath = path;
-    let missingFiles = false;
-    let requiredFiles = [
-        'config/settings.json',
-        'config/databases/staging.json',
-        'config/databases/production.json'
-    ];
+// Remove warning listeners
+process.removeAllListeners('warning');
 
-    new Promise((resolve, reject) => {
-        requiredFiles.forEach((path) => {
-            if (!fs.existsSync(`${npmPath}/${path}`)) {
-                error(`${path} was not found. Make sure this file exists (${npmPath}/${path})`);
+/**
+ * Main application entry
+ */
+async function main() {
+    try {
+        // Initialize ServiceContainer first
+        const container = ServiceContainer.getInstance();
+        await container.initialize();
+
+        // Get npm installation path
+        const npmPath = await getInstalledPath('sw-db-sync');
+
+        // Initialize config path resolver
+        ConfigPathResolver.setPackageConfigDir(npmPath);
+        ConfigPathResolver.ensureUserConfigDir();
+
+        // Initialize config files from samples if they don't exist
+        ConfigInitializer.initialize(npmPath);
+
+        // Check for required files (with fallback support)
+        let missingFiles = false;
+        const requiredFiles = [
+            'static-settings.json',  // Always from package
+            'settings.json',
+            'databases/staging.json',
+            'databases/production.json'
+        ];
+
+        for (const relativePath of requiredFiles) {
+            // static-settings.json is always from package directory
+            if (relativePath === 'static-settings.json') {
+                const packagePath = `${npmPath}/config/${relativePath}`;
+                if (!fs.existsSync(packagePath)) {
+                    error(`${relativePath} was not found in package: ${packagePath}`);
+                    missingFiles = true;
+                }
+                continue;
+            }
+
+            // Other files use fallback mechanism
+            const resolvedPath = ConfigPathResolver.resolveConfigPath(relativePath);
+            if (!resolvedPath) {
+                const userPath = ConfigPathResolver.getUserConfigDir();
+                const packagePath = `${npmPath}/config`;
+                error(
+                    `${relativePath} was not found.\n` +
+                    `  Checked: ${userPath}/${relativePath}\n` +
+                    `  Checked: ${packagePath}/${relativePath}\n` +
+                    `  Please create this file in one of these locations.`
+                );
                 missingFiles = true;
             }
+        }
+
+        // If there are files missing, stop the program
+        if (missingFiles) {
+            return;
+        }
+
+        UI.showBanner();
+        console.log('');
+
+        // Show config location info
+        const userConfigDir = ConfigPathResolver.getUserConfigDir();
+        const settingsLocation = ConfigPathResolver.getConfigLocation('settings.json');
+        if (settingsLocation === 'user') {
+            console.log(kleur.gray(`Using config from: ${userConfigDir}`));
+        } else {
+            console.log(kleur.gray(`Using config from: ${npmPath}/config`));
+            console.log(kleur.dim(`(You can override by creating configs in: ${userConfigDir})`));
+        }
+
+        // Get package version
+        const packageJson = require('../package.json');
+        const versionCheck = container.getVersionCheck();
+        const versionInfo = await versionCheck.checkForUpdates('sw-db-sync', packageJson.version);
+
+        // Build description
+        let description = `sw-db-sync - Shopware 6 Database Synchronizer - ${packageJson.version}\n\n`;
+        description += `${kleur.gray('Resources:')}\n`;
+        description += `• Github: https://github.com/jellesiderius/sw-db-sync\n`;
+        description += `• Docs: https://github.com/jellesiderius/sw-db-sync/wiki\n`;
+        description += `• Issues: https://github.com/jellesiderius/sw-db-sync/issues`;
+
+        if (versionInfo.updateAvailable) {
+            description += `\n\n${kleur.yellow('Update available!')} Run 'sw-db-sync self-update' for version ${versionInfo.latestVersion}`;
+        }
+
+        // Setup CLI
+        const program = new Command();
+
+        program
+            .version(packageJson.version)
+            .usage('<command> [options]')
+            .description(description);
+
+        // Start command - main sync operation
+        program
+            .command('start')
+            .description('Start database synchronization')
+            .action(async () => {
+                const controller = new StartController();
+                await controller.execute();
+            });
+
+        // Open folder command
+        program
+            .command('open-folder')
+            .description('Open the database download folder')
+            .action(async () => {
+                const { OpenFolderController } = await import('./controllers/OpenFolderController');
+                const controller = new OpenFolderController();
+                await controller.execute();
+            });
+
+        // Self update command
+        program
+            .command('self-update')
+            .description('Update sw-db-sync to the latest version')
+            .action(async () => {
+                const controller = new SelfUpdateController();
+                await controller.execute();
+            });
+
+        // Handle unknown commands
+        program.on('command:*', () => {
+            program.help();
         });
-    });
 
-    // If there are files missing, stop the program from running
-    if (missingFiles) {
-        return;
+        // Parse arguments
+        program.parse(process.argv);
+
+        // Show help if no command provided
+        if (!process.argv.slice(2).length) {
+            program.outputHelp();
+            process.exit(0);
+        }
+    } catch (err) {
+        error(`Unexpected error: ${err instanceof Error ? err.message : 'Unknown error'}`);
+        if (process.env.DEBUG && err instanceof Error) {
+            console.error(err.stack);
+        }
+        process.exit(1);
     }
+}
 
-    commandLoader(program);
-
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const packageJson = require('../package.json')
-    let versionCheck = new VersionCheck();
-    await versionCheck.getToolVersions();
-    let description = `Shopware 6 Database Synchronizer - ${packageJson.version}`;
-    if (versionCheck.config.currentVersion < versionCheck.config.latestVersion) {
-        description = `${description}\nRun 'sw-db-sync self-update' to download the newest version: ${versionCheck.config.latestVersion}`;
-    }
-
-    program
-        .version(packageJson.version)
-        .usage('<command> [options]')
-        .description(description)
-
-    program.on('command:*', () => {
-        program.help()
-    })
-
-    program.parse(process.argv)
-
-    if (!process.argv.slice(2).length) {
-        program.outputHelp()
-        process.exit()
-    }
-});
+// Run the application
+main();
