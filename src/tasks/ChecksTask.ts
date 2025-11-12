@@ -1,6 +1,7 @@
 import * as fs from 'fs'
 import { Listr } from 'listr2';
 import configFile from '../../config/settings.json'
+import { ConfigPathResolver } from '../utils/ConfigPathResolver';
 
 class ChecksTask {
     private checkTasks: any[] = [];
@@ -62,16 +63,31 @@ class ChecksTask {
             }
         }
 
-        // Check if target folder exists before downloading
+        // Check if target folder exists before downloading (or create it)
         this.checkTasks.push(
             {
                 title: 'Checking if download folder exists',
                 task: async (): Promise<boolean> => {
-                    if (fs.existsSync(config.customConfig.localDatabaseFolderLocation)) {
+                    const downloadFolder = config.customConfig.localDatabaseFolderLocation;
+                    
+                    if (fs.existsSync(downloadFolder)) {
                         return true;
                     }
 
-                    throw new Error(`Download folder ${config.customConfig.localDatabaseFolderLocation} does not exist. This can be configured in config/settings.json`);
+                    // Try to create the folder
+                    try {
+                        fs.mkdirSync(downloadFolder, { recursive: true });
+                        return true;
+                    } catch (error) {
+                        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
+                        throw new Error(
+                            `Download folder does not exist and could not be created:\n` +
+                            `  Path: ${downloadFolder}\n` +
+                            `  Error: ${errorMsg}\n\n` +
+                            `You can change this location in your settings.json file:\n` +
+                            `  ${ConfigPathResolver.getUserConfigDir()}/settings.json`
+                        );
+                    }
                 }
             }
         );
@@ -81,11 +97,18 @@ class ChecksTask {
             {
                 title: 'Checking if SSH key exists',
                 task: async (): Promise<boolean> => {
-                    if (fs.existsSync(config.customConfig.sshKeyLocation)) {
+                    const sshKeyPath = config.customConfig.sshKeyLocation;
+                    
+                    if (fs.existsSync(sshKeyPath)) {
                         return true;
                     }
 
-                    throw new Error(`SSH key ${config.customConfig.sshKeyLocation} does not exist. This can be configured in config/settings.json`);
+                    throw new Error(
+                        `SSH key not found:\n` +
+                        `  Path: ${sshKeyPath}\n\n` +
+                        `You can change this location in your settings.json file:\n` +
+                        `  ${ConfigPathResolver.getUserConfigDir()}/settings.json`
+                    );
                 }
             }
         );
