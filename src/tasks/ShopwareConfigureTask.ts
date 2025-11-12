@@ -39,13 +39,6 @@ class ShopwareConfigureTask {
                         if (salesChannelDomains && Object.keys(salesChannelDomains).length > 0) {
                             task.output = `Using custom domain mapping from .sw-db-sync-config.json`;
                             
-                            // Get all sales channels with their domains
-                            const result = await localhostShopwareRootMysqlExec(
-                                "SELECT HEX(scd.id) as id, HEX(scd.sales_channel_id) as sales_channel_id, sc.name, scd.url FROM sales_channel_domain scd LEFT JOIN sales_channel sc ON sc.id = scd.sales_channel_id",
-                                config,
-                                true
-                            );
-                            
                             const domains: string[] = [];
                             
                             // Update domains for each mapped sales channel
