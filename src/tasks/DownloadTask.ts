@@ -1,5 +1,6 @@
 import {localhostRsyncDownloadCommand, sshNavigateToShopwareRootCommand, extractDatabaseDetails } from '../utils/Console';
 import { Listr } from 'listr2';
+import * as fs from 'fs';
 
 class DownloadTask {
     private downloadTasks: any[] = [];
@@ -25,15 +26,31 @@ class DownloadTask {
             {
                 title: 'Connecting to server through SSH',
                 task: async (): Promise<void> => {
-                    // Open connection to SSH server
-                    await ssh.connect({
+                    // Build SSH config
+                    const sshConfig: any = {
                         host: config.databases.databaseData.server,
-                        password: config.databases.databaseData.password,
                         username: config.databases.databaseData.username,
                         port: config.databases.databaseData.port,
-                        privateKey: config.customConfig.sshKeyLocation,
-                        passphrase: config.customConfig.sshPassphrase
-                    });
+                        readyTimeout: 20000,
+                        keepaliveInterval: 10000,
+                        keepaliveCountMax: 3
+                    };
+
+                    // Add password if provided
+                    if (config.databases.databaseData.password) {
+                        sshConfig.password = config.databases.databaseData.password;
+                    }
+
+                    // Read private key file contents if provided
+                    if (config.customConfig.sshKeyLocation && fs.existsSync(config.customConfig.sshKeyLocation)) {
+                        sshConfig.privateKey = fs.readFileSync(config.customConfig.sshKeyLocation, 'utf8');
+                        if (config.customConfig.sshPassphrase) {
+                            sshConfig.passphrase = config.customConfig.sshPassphrase;
+                        }
+                    }
+
+                    // Open connection to SSH server
+                    await ssh.connect(sshConfig);
                 }
             }
         );

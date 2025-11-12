@@ -56,7 +56,10 @@ export class SSHService {
             const connectionConfig: any = {
                 host: config.host,
                 port: config.port || 22,
-                username: config.username
+                username: config.username,
+                readyTimeout: 20000,
+                keepaliveInterval: 10000,
+                keepaliveCountMax: 3
             };
 
             if (config.password) {
@@ -64,7 +67,8 @@ export class SSHService {
             }
 
             if (config.privateKeyPath && fs.existsSync(config.privateKeyPath)) {
-                connectionConfig.privateKey = config.privateKeyPath;
+                // Read the private key file contents, not just the path
+                connectionConfig.privateKey = fs.readFileSync(config.privateKeyPath, 'utf8');
                 if (config.passphrase) {
                     connectionConfig.passphrase = config.passphrase;
                 }
