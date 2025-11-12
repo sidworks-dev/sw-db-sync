@@ -1,9 +1,13 @@
 import { error } from "../utils/Console";
 import inquirer from 'inquirer'
+import searchList from 'inquirer-search-list'
 import DatabasesModel from "../models/DatabasesModel";
 import * as path from 'path'
 import * as fs from 'fs'
 import CommandExists from "command-exists";
+
+// Register the search-list prompt type
+inquirer.registerPrompt('search-list', searchList);
 
 class SelectDatabaseQuestion {
     private databasesModel = new DatabasesModel();
