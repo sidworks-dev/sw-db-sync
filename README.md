@@ -1,3 +1,11 @@
+# ⚠️ Archived
+
+This repository is no longer maintained. I've created a new, improved plugin for database syncing:
+
+👉 [sw-plugin-database-sync](https://github.com/sidworks-dev/sw-plugin-database-sync)
+
+---
+
 # Database synchronization tool for Shopware 6 (Mac/Linux)
 ![](https://i.imgur.com/QWNjULB.png)
 
